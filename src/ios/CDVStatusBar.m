@@ -1,3 +1,7 @@
+/**
+ * Status bar Frame size fix
+ */
+
 /*
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
@@ -92,11 +96,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
 -(void)cordovaViewWillAppear:(NSNotification*)notification
 {
-    //add a small delay ( 0.1 seconds ) or statusbar size will be wrong
-    __weak CDVStatusBar* weakSelf = self;
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 0.1 * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
-        [weakSelf resizeWebView];
-    });
+    [self resizeWebView];
 }
 
 -(void)statusBarDidChangeFrame:(NSNotification*)notification
@@ -137,11 +137,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
     setting  = @"StatusBarStyle";
     if ([self settingForKey:setting]) {
-        NSString * styleSetting = [self settingForKey:setting];
-        if ([styleSetting isEqualToString:@"blacktranslucent"] || [styleSetting isEqualToString:@"blackopaque"]) {
-            NSLog(@"%@ is deprecated and will be removed in next major release, use lightcontent", styleSetting);
-        }
-        [self setStatusBarStyle:styleSetting];
+        [self setStatusBarStyle:[self settingForKey:setting]];
     }
 
     setting  = @"StatusBarDefaultScrollToTop";
@@ -150,7 +146,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     } else {
         self.webView.scrollView.scrollsToTop = NO;
     }
- 
+
     // blank scroll view to intercept status bar taps
     UIScrollView *fakeScrollView = [[UIScrollView alloc] initWithFrame:UIScreen.mainScreen.bounds];
     fakeScrollView.delegate = self;
@@ -298,12 +294,12 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
 - (void) styleDefault:(CDVInvokedUrlCommand*)command
 {
-    if (@available(iOS 13.0, *)) {
-        // TODO - Replace with UIStatusBarStyleDarkContent once Xcode 10 support is dropped
-        [self setStyleForStatusBar:3];
-    } else {
-        [self setStyleForStatusBar:UIStatusBarStyleDefault];
+    if (IsAtLeastiOSVersion(@"13.0")) {
+        [self setStyleForStatusBar:UIStatusBarStyleDarkContent];
+        return;
     }
+
+    [self setStyleForStatusBar:UIStatusBarStyleDefault];
 }
 
 - (void) styleLightContent:(CDVInvokedUrlCommand*)command
@@ -434,6 +430,12 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     _statusBarBackgroundView.frame = sbBgFrame;
 }
 
+- (float) getStatusBarOffset {
+    CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
+    float statusBarOffset = IsAtLeastiOSVersion(@"7.0") ? MIN(statusBarFrame.size.width, statusBarFrame.size.height) : 0.0;
+    return statusBarOffset;
+}
+
 -(void)resizeWebView
 {
     BOOL isIOS11 = (IsAtLeastiOSVersion(@"11.0"));
@@ -447,9 +449,8 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
     self.webView.frame = bounds;
 
-    CGRect statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
     CGRect frame = self.webView.frame;
-    CGFloat height = statusBarFrame.size.height;
+    CGFloat height = [self getStatusBarOffset];
 
     if (!self.statusBarOverlaysWebView) {
         frame.origin.y = height;
@@ -457,9 +458,9 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
         frame.origin.y = height >= 20 ? height - 20 : 0;
         if (isIOS11) {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-            if (@available(iOS 11.0, *)) {
+            if (IsAtLeastiOSVersion(@"11.0")) {
                 float safeAreaTop = self.webView.safeAreaInsets.top;
-                if (height >= safeAreaTop && safeAreaTop >0) {
+                if (height >= safeAreaTop && safeAreaTop > 0) {
                     // Sometimes when in-call/recording/hotspot larger status bar is present, the safeAreaTop is 40 but we want frame.origin.y to be 20
                     frame.origin.y = safeAreaTop == 40 ? 20 : height - safeAreaTop;
                 } else {
@@ -469,9 +470,9 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 #endif
         }
     }
+
     frame.size.height -= frame.origin.y;
     self.webView.frame = frame;
-    
 }
 
 - (void) dealloc
