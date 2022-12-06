@@ -1,3 +1,6 @@
+/** ProFit MOD
+ * Status bar Frame size fix
+ */
 /*
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
@@ -147,7 +150,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     } else {
         self.webView.scrollView.scrollsToTop = NO;
     }
- 
+
     // blank scroll view to intercept status bar taps
     UIScrollView *fakeScrollView = [[UIScrollView alloc] initWithFrame:UIScreen.mainScreen.bounds];
     fakeScrollView.delegate = self;
@@ -296,7 +299,9 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 {
     if (@available(iOS 13.0, *)) {
         // TODO - Replace with UIStatusBarStyleDarkContent once Xcode 10 support is dropped
-        [self setStyleForStatusBar:3];
+        /** ProFit MOD */
+        [self setStyleForStatusBar:UIStatusBarStyleDarkContent];
+        /** */
     } else {
         [self setStyleForStatusBar:UIStatusBarStyleDefault];
     }
@@ -426,6 +431,14 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     _statusBarBackgroundView.frame = sbBgFrame;
 }
 
+/** ProFit MOD */
+- (float) getStatusBarOffset {
+    CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
+    float statusBarOffset = IsAtLeastiOSVersion(@"7.0") ? MIN(statusBarFrame.size.width, statusBarFrame.size.height) : 0.0;
+    return statusBarOffset;
+}
+
+/** */
 -(void)resizeWebView
 {
     BOOL isIOS11 = (IsAtLeastiOSVersion(@"11.0"));
@@ -439,9 +452,10 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
     self.webView.frame = bounds;
 
-    CGRect statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
     CGRect frame = self.webView.frame;
-    CGFloat height = statusBarFrame.size.height;
+    /** ProFit MOD */
+    CGFloat height = [self getStatusBarOffset];
+    /** */
 
     if (!self.statusBarOverlaysWebView) {
         frame.origin.y = height;
@@ -463,7 +477,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     }
     frame.size.height -= frame.origin.y;
     self.webView.frame = frame;
-    
+
 }
 
 - (void) dealloc
