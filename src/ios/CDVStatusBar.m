@@ -1,6 +1,3 @@
-/** ProFit MOD
- * Status bar Frame size fix
- */
 /*
  Licensed to the Apache Software Foundation (ASF) under one
  or more contributor license agreements.  See the NOTICE file
@@ -150,7 +147,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     } else {
         self.webView.scrollView.scrollsToTop = NO;
     }
-
+ 
     // blank scroll view to intercept status bar taps
     UIScrollView *fakeScrollView = [[UIScrollView alloc] initWithFrame:UIScreen.mainScreen.bounds];
     fakeScrollView.delegate = self;
@@ -298,10 +295,7 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 - (void) styleDefault:(CDVInvokedUrlCommand*)command
 {
     if (@available(iOS 13.0, *)) {
-        // TODO - Replace with UIStatusBarStyleDarkContent once Xcode 10 support is dropped
-        /** ProFit MOD */
         [self setStyleForStatusBar:UIStatusBarStyleDarkContent];
-        /** */
     } else {
         [self setStyleForStatusBar:UIStatusBarStyleDefault];
     }
@@ -431,18 +425,8 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
     _statusBarBackgroundView.frame = sbBgFrame;
 }
 
-/** ProFit MOD */
-- (float) getStatusBarOffset {
-    CGRect statusBarFrame = [[UIApplication sharedApplication] statusBarFrame];
-    float statusBarOffset = IsAtLeastiOSVersion(@"7.0") ? MIN(statusBarFrame.size.width, statusBarFrame.size.height) : 0.0;
-    return statusBarOffset;
-}
-
-/** */
 -(void)resizeWebView
 {
-    BOOL isIOS11 = (IsAtLeastiOSVersion(@"11.0"));
-
     CGRect bounds = [self.viewController.view.window bounds];
     if (CGRectEqualToRect(bounds, CGRectZero)) {
         bounds = [[UIScreen mainScreen] bounds];
@@ -452,32 +436,24 @@ static const void *kStatusBarStyle = &kStatusBarStyle;
 
     self.webView.frame = bounds;
 
+    CGRect statusBarFrame = [UIApplication sharedApplication].statusBarFrame;
     CGRect frame = self.webView.frame;
-    /** ProFit MOD */
-    CGFloat height = [self getStatusBarOffset];
-    /** */
+    CGFloat height = statusBarFrame.size.height;
 
     if (!self.statusBarOverlaysWebView) {
         frame.origin.y = height;
     } else {
-        frame.origin.y = height >= 20 ? height - 20 : 0;
-        if (isIOS11) {
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
-            if (@available(iOS 11.0, *)) {
-                float safeAreaTop = self.webView.safeAreaInsets.top;
-                if (height >= safeAreaTop && safeAreaTop >0) {
-                    // Sometimes when in-call/recording/hotspot larger status bar is present, the safeAreaTop is 40 but we want frame.origin.y to be 20
-                    frame.origin.y = safeAreaTop == 40 ? 20 : height - safeAreaTop;
-                } else {
-                    frame.origin.y = 0;
-                }
-            }
-#endif
+        float safeAreaTop = self.webView.safeAreaInsets.top;
+        if (height >= safeAreaTop && safeAreaTop >0) {
+            // Sometimes when in-call/recording/hotspot larger status bar is present, the safeAreaTop is 40 but we want frame.origin.y to be 20
+            frame.origin.y = safeAreaTop == 40 ? 20 : height - safeAreaTop;
+        } else {
+            frame.origin.y = 0;
         }
     }
     frame.size.height -= frame.origin.y;
     self.webView.frame = frame;
-
+    
 }
 
 - (void) dealloc
